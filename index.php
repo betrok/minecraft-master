@@ -52,7 +52,7 @@ case 'setskin':
 		'errorMessage' => 'Bad request', 'cause' => 'Bad request'))));
 	if (!m_login($jsonData['username'],$jsonData['password']))
 		die(echo_log(json_encode(array('error' => 'Bad login'))));
-	if (get_skin($jsonData['username'],$jsonData['skinData']))
+	if (set_skin($jsonData['username'],$jsonData['skinData'], isset($jsonData['skinModel']) ? $jsonData['skinModel'] : null))
 		$answer = array('username' => $jsonData['username'], 'status' => 'accepted');
 	else
 		$answer = array('error' => 'Bad request');
@@ -107,19 +107,23 @@ case 'hasJoined':
 		m_hasJoined($_GET['username'],$_GET['serverId']) or die();
 	header("HTTP/1.1 200 OK");
 	$link = newdb();
-	$stmt = $link->prepare("SELECT clientToken,isCapeOn,skin FROM players WHERE player=?");
+	$stmt = $link->prepare("SELECT clientToken,cape,skin,skin_model FROM players WHERE player=?");
 	$stmt->bind_param('s',$_GET['username']);
 	$stmt->execute();
-	$stmt->bind_result($clientToken,$isCapeOn,$skin);
+	$stmt->bind_result($clientToken,$cape,$skin, $skin_model);
 	if (!$stmt->fetch()) 
 		die();
 	if(!$skin)
 		$skin = "fairy"; #default skin
-	$value = array("timestamp" => $skinDate, "profileId" => $clientToken, "profileName" => $_GET['username'], 
-		"textures" => ($isCapeOn ? array("SKIN" => array("url" => $http_root.'/Skins/'.$_GET['username']),
-		"CAPE" => array("url" => $http_root.'/Capes/'.$_GET['username'])) :
-		array("SKIN" => array("url" => $http_root.'/Skins/'.$skin,
-		"metadata" => array("model" => "slim")))));
+	$value = array("timestamp" => $skinDate, "profileId" => $clientToken, "profileName" => $_GET['username']);
+	$value["textures"] = array();
+	if ($skin) {
+		$value["textures"]["SKIN"] = array("url" => $http_root.'/Skins/'.$skin);
+		if ($skin_model)
+			$value["textures"]["SKIN"]["metadata"] = array("model" => $skin_model);
+	}
+	if ($cape)
+		$value["textures"]["CAPE"] = array("url" => $http_root.'/Capes/'.$cape);
 	$value=json_encode($value,JSON_UNESCAPED_SLASHES);
 	$fp = fopen("./key.pem", "r");
 	$priv_key = fread($fp, filesize("./key.pem"));
@@ -136,19 +140,23 @@ case stripos($_GET['act'], 'profile/') === 0:
 	$id=explode('/',$_GET['act'])[1];
 	$uuid=toUUID($id);
 	$link = newdb();
-	$stmt = $link->prepare("SELECT player,isCapeOn,skin FROM players WHERE clientToken=?");
+	$stmt = $link->prepare("SELECT player,cape,skin,skin_model FROM players WHERE clientToken=?");
 	$stmt->bind_param('s',$uuid);
 	$stmt->execute();
-	$stmt->bind_result($player,$isCapeOn,$skin);
-	if (!$stmt->fetch()) 
+	$stmt->bind_result($player,$cape,$skin, $skin_model);
+	if (!$stmt->fetch())
 		die();
 	if(!$skin)
 		$skin = "fairy"; #default skin
-	$value = array("timestamp" => $skinDate, "profileId" => $uuid, "profileName" => $player,
-		"textures" => ($isCapeOn ? array("SKIN" => array("url" => $http_root.'/Skins/'.$player),
-		"CAPE" => array("url" => $http_root.'/Capes/'.$player)) :
-		array("SKIN" => array("url" => $http_root.'/Skins/'.$skin,
-		"metadata" => array("model" => "slim")))));
+	$value = array("timestamp" => $skinDate, "profileId" => $uuid, "profileName" => $player);
+	$value["textures"] = array();
+	if ($skin) {
+		$value["textures"]["SKIN"] = array("url" => $http_root.'/Skins/'.$skin);
+		if ($skin_model)
+			$value["textures"]["SKIN"]["metadata"] = array("model" => $skin_model);
+	}
+	if ($cape)
+		$value["textures"]["CAPE"] = array("url" => $http_root.'/Capes/'.$cape);
 	$value=json_encode($value,JSON_UNESCAPED_SLASHES);
 	$fp = fopen("./key.pem", "r");
 	$priv_key = fread($fp, filesize("./key.pem"));

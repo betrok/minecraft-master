@@ -156,7 +156,7 @@ function toUUID($string) {
 	return substr_replace($newstr, "-", 23, 0);
 }
 
-function get_skin($user,$skinData) {
+function set_skin($user,$skinData,$skin_model) {
 	$tmp = tempnam("/tmp","skin_");
 	if (!file_put_contents($tmp,base64_decode($skinData)))
 		return FALSE;
@@ -175,8 +175,8 @@ function get_skin($user,$skinData) {
 	if($oldskin and is_readable("./Skins/".$oldskin))
 		unlink("./Skins/".$oldskin);
 	$newskin = getGUID(false).getGUID(false);
-	$stmt = $link->prepare("UPDATE players SET skin=? WHERE player=?");
-	$stmt->bind_param('ss',$newskin,$user);
+	$stmt = $link->prepare("UPDATE players SET skin=?,skin_model=? WHERE player=?");
+	$stmt->bind_param('sss',$newskin,$skin_model,$user);
 	$stmt->execute();
 	if (!rename($tmp,"./Skins/".$newskin))
 		return FALSE;

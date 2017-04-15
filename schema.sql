@@ -65,11 +65,12 @@ CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player` varchar(32) DEFAULT NULL,
   `skin` varchar(64) DEFAULT NULL,
+  `skin_model` varchar(64) DEFAULT NULL,
   `password` varchar(64) DEFAULT NULL,
   `salt` varchar(64) DEFAULT NULL,
   `isMod` tinyint(1) DEFAULT '0',
   `isMojang` tinyint(1) DEFAULT '0',
-  `isCapeOn` tinyint(1) DEFAULT '0',
+  `cape` varchar(64) DEFAULT NULL,
   `clientToken` varchar(64) DEFAULT NULL,
   `accessToken` varchar(64) DEFAULT NULL,
   `serverId` varchar(64) DEFAULT NULL,
@@ -107,3 +108,12 @@ CREATE TABLE `unbanned_players` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2014-09-05 14:37:15
+
+DROP TABLE IF EXISTS `migration_history`;
+
+CREATE TABLE `migration_history` (
+  `id` integer PRIMARY KEY AUTO_INCREMENT,
+  `title` varchar(64) UNIQUE NOT NULL,
+  `timestamp` timestamp DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+INSERT INTO `migration_history`(`title`) VALUES("added_skin_models_support");
