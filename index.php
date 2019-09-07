@@ -206,7 +206,12 @@ switch ($_GET['act']) {
 
     case stripos($_GET['act'], 'profile/') === 0:
         list(, $id, ) = explode('/', $_GET['act'], 3);
-        $uuid = toUUID($id);
+
+        $uuid = to_uuid($id);
+        if (is_null($uuid)) {
+            break;
+        }
+
         $link = newdb();
         $stmt = $link->prepare(
             'SELECT player, cape, skin, skin_model FROM players WHERE clientToken = ?'

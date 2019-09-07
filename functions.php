@@ -185,27 +185,31 @@ function salt(string $salt, string $password): string
     return sha1($salt . sha1($password));
 }
 
-function getGUID(bool $hyphen = true): string
+function generate_uuid(bool $hyphen = true): string
 {
-    mt_srand((double) microtime() * 10000);
-    $charid = md5(uniqid(rand(), true));
-    if ($hyphen) {
-        $hyphen = chr(45); // "-"
-    }
-    $uuid = substr($charid, 0,   8) . $hyphen
-          . substr($charid, 8,   4) . $hyphen
-          . substr($charid, 12,  4) . $hyphen
-          . substr($charid, 16,  4) . $hyphen
-          . substr($charid, 20, 12);
-    return $uuid;
+    // Mojang UUIDs are variant 1, so this is variant 2
+    $chars = [
+        bin2hex(random_bytes(4)),
+        bin2hex(random_bytes(2)),
+        dechex(random_int(0, 0x0fff) | 0x4000),
+        dechex(random_int(0, 0x1fff) | 0xC000),
+        bin2hex(random_bytes(6)),
+    ];
+    return implode(($hyphen ? '-' : ''), $chars);
 }
 
-function toUUID(string $str): string
+function to_uuid(string $str)
 {
-    $newstr = substr_replace($str,    '-',  8, 0);
-    $newstr = substr_replace($newstr, '-', 13, 0);
-    $newstr = substr_replace($newstr, '-', 18, 0);
-    return substr_replace($newstr,    '-', 23, 0);
+    $ret = filter_var($str, FILTER_VALIDATE_REGEXP, [
+        'options' => ['regexp' => '/^[0-9a-fA-F]+$/'],
+    ]);
+    if ($ret === false || strlen($ret) !== 32) {
+        return null;
+    }
+    foreach ([8, 13, 18, 23] as $pos) {
+        $ret = substr_replace($ret, '-',  $pos, 0);
+    }
+    return strtolower($ret);
 }
 
 function set_skin(string $user, string $skinData, $skinModel): bool
@@ -231,7 +235,7 @@ function set_skin(string $user, string $skinData, $skinModel): bool
     if ($oldSkin && is_readable('./Skins/' . $oldSkin)) {
         unlink('./Skins/' . $oldSkin);
     }
-    $newSkin = getGUID(false) . getGUID(false);
+    $newSkin = generate_uuid(false) . generate_uuid(false);
     $stmt = $link->prepare('UPDATE players SET skin = ?, skin_model = ? WHERE player = ?');
     $stmt->bind_param('sss', $newSkin, $skinModel, $user);
     $stmt->execute();
