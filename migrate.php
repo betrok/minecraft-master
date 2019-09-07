@@ -16,7 +16,7 @@ $migrations[] = [
     }
 ];
 
-function migrationHistoryExist($db)
+function migrationHistoryExist($db): bool
 {
     $result = $db->query('SHOW TABLES');
     while ($row = $result->fetch_array()) {

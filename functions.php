@@ -1,6 +1,6 @@
 <?php
 
-function m_login($user, $password)
+function m_login(string $user, string $password): bool
 {
     $link = newdb();
     $stmt = $link->prepare('SELECT salt,password FROM players WHERE player = ?');
@@ -10,13 +10,10 @@ function m_login($user, $password)
     if (!$stmt->fetch()) {
         return false;
     }
-    if (salt($salt, $password) !== $password2) {
-        return false;
-    }
-    return true;
+    return (salt($salt, $password) === $password2);
 }
 
-function m_join($accessToken, $selectedProfile)
+function m_join(string $accessToken, string $selectedProfile): bool
 {
     $link = newdb();
     $stmt = $link->prepare('SELECT accessToken FROM players WHERE accessToken = ?');
@@ -32,7 +29,7 @@ function m_join($accessToken, $selectedProfile)
     return true;
 }
 
-function m_isMojang($user)
+function m_isMojang(string $user): bool
 {
     $link = newdb();
     $stmt = $link->prepare('SELECT isMojang FROM players WHERE player = ?');
@@ -45,10 +42,10 @@ function m_isMojang($user)
         }
         return false;
     }
-    return $isMojang;
+    return (bool) $isMojang;
 }
 
-function mojang_hasJoined($user, $serverId)
+function mojang_hasJoined(string $user, string $serverId)
 {
     $link = newdb();
     $stmt = $link->prepare('SELECT accessToken FROM players WHERE player = ?');
@@ -70,7 +67,7 @@ function mojang_hasJoined($user, $serverId)
     return json_encode($jsonData);
 }
 
-function m_hasJoined($user, $serverId)
+function m_hasJoined(string $user, string $serverId): bool
 {
     $link = newdb();
     $stmt = $link->prepare('SELECT serverId FROM players WHERE player = ?');
@@ -92,7 +89,7 @@ function m_hasJoined($user, $serverId)
     return true;
 }
 
-function m_checkban($user)
+function m_checkban(string $user)
 {
     $link = newdb();
     $stmt = $link->prepare(
@@ -113,7 +110,7 @@ function m_checkban($user)
     ];
 }
 
-function m_ban($user, $target, $reason)
+function m_ban(string $user, string $target, $reason): bool
 {
     $link = newdb();
     $stmt = $link->prepare(
@@ -127,7 +124,7 @@ function m_ban($user, $target, $reason)
     return true;
 }
 
-function m_unban($user, $target, $reason)
+function m_unban(string $user, string $target, string $reason): bool
 {
     $link = newdb();
     $stmt = $link->prepare('DELETE FROM banned_players WHERE player = ?');
@@ -145,7 +142,7 @@ function m_unban($user, $target, $reason)
     return true;
 }
 
-function m_isMod($user)
+function m_isMod(string $user): bool
 {
     $link = newdb();
     $stmt = $link->prepare('SELECT isMod FROM players WHERE player = ?');
@@ -160,12 +157,12 @@ function m_isMod($user)
     return (bool) $isMod;
 }
 
-function echo_log($string)
+function echo_log(string $line)
 {
     if ($GLOBALS['DEBUG']) {
-        error_log($string);
+        error_log($line);
     }
-    echo $string;
+    echo $line;
 }
 
 function newdb()
@@ -183,12 +180,12 @@ function newdb()
     return $link;
 }
 
-function salt($salt, $password)
+function salt(string $salt, string $password): string
 {
     return sha1($salt . sha1($password));
 }
 
-function getGUID($hyphen = true)
+function getGUID(bool $hyphen = true): string
 {
     mt_srand((double) microtime() * 10000);
     $charid = md5(uniqid(rand(), true));
@@ -203,15 +200,15 @@ function getGUID($hyphen = true)
     return $uuid;
 }
 
-function toUUID($string)
+function toUUID(string $str): string
 {
-    $newstr = substr_replace($string, '-',  8, 0);
+    $newstr = substr_replace($str,    '-',  8, 0);
     $newstr = substr_replace($newstr, '-', 13, 0);
     $newstr = substr_replace($newstr, '-', 18, 0);
     return substr_replace($newstr,    '-', 23, 0);
 }
 
-function set_skin($user, $skinData, $skinModel)
+function set_skin(string $user, string $skinData, $skinModel): bool
 {
     $tmp = tempnam('/tmp', 'skin_');
     if (!file_put_contents($tmp, base64_decode($skinData))) {
