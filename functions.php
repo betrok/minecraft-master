@@ -2,57 +2,50 @@
 
 function m_login(string $user, string $password): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare('SELECT salt,password FROM players WHERE player = ?');
-    $stmt->bind_param('s', $user);
-    $stmt->execute();
-    $stmt->bind_result($salt, $password2);
-    if (!$stmt->fetch()) {
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT salt, password FROM players WHERE player = ?');
+    $stmt->execute([$user]);
+    $result = $stmt->fetch();
+    if ($result === false) {
         return false;
     }
+    list($salt, $password2) = $result;
     return (salt($salt, $password) === $password2);
 }
 
 function m_join(string $accessToken, string $selectedProfile): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare('SELECT accessToken FROM players WHERE accessToken = ?');
-    $stmt->bind_param('s', $accessToken);
-    $stmt->execute();
-    $stmt->bind_result($accessToken2);
-    if (!$stmt->fetch()) {
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT TRUE FROM players WHERE accessToken = ?');
+    $stmt->execute([$accessToken]);
+    if ($stmt->rowCount() === 0) {
         return false;
     }
     if ($GLOBALS['DEBUG']) {
-        error_log('Join OK: ' . $accessToken2);
+        error_log('Join OK: ' . $accessToken);
     }
     return true;
 }
 
 function m_isMojang(string $user): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare('SELECT isMojang FROM players WHERE player = ?');
-    $stmt->bind_param('s', $user);
-    $stmt->execute();
-    $stmt->bind_result($isMojang);
-    if (!$stmt->fetch()) {
-        if ($GLOBALS['DEBUG']) {
-            error_log("mojang_hasJoined: {$user} is {$isMojang}");
-        }
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT isMojang FROM players WHERE player = ?');
+    $stmt->execute([$user]);
+    $result = $stmt->fetch();
+    if ($result === false) {
         return false;
     }
-    return (bool) $isMojang;
+    return (bool) $result['isMojang'];
 }
 
 function mojang_hasJoined(string $user, string $serverId)
 {
-    $link = newdb();
-    $stmt = $link->prepare('SELECT accessToken FROM players WHERE player = ?');
-    $stmt->bind_param('s', $user);
-    $stmt->execute();
-    $stmt->bind_result($accessToken);
-    if (!$stmt->fetch()) {
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT accessToken FROM players WHERE player = ?');
+    $stmt->execute([$user]);
+    $accessToken = $stmt->fetchColumn();
+    if ($accessToken === false) {
         return false;
     }
 
@@ -69,12 +62,11 @@ function mojang_hasJoined(string $user, string $serverId)
 
 function m_hasJoined(string $user, string $serverId): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare('SELECT serverId FROM players WHERE player = ?');
-    $stmt->bind_param('s', $user);
-    $stmt->execute();
-    $stmt->bind_result($serverId2);
-    if (!$stmt->fetch()) {
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT serverId FROM players WHERE player = ?');
+    $stmt->execute([$user]);
+    $serverId2 = $stmt->fetchColumn();
+    if ($serverId2 === false) {
         if ($GLOBALS['DEBUG']) {
             error_log("hasJoined: {$user} {$serverId} is not here");
         }
@@ -91,18 +83,18 @@ function m_hasJoined(string $user, string $serverId): bool
 
 function m_checkban(string $user)
 {
-    $link = newdb();
-    $stmt = $link->prepare(
+    $conn = dbconn();
+    $stmt = $conn->prepare(
         'SELECT reason, who_banned, banned_at FROM banned_players WHERE player = ?'
     );
-    $stmt->bind_param('s', $user);
-    if (!$stmt->execute()) {
+    if (!$stmt->execute([$user])) {
         return false;
     }
-    $stmt->bind_result($reason, $whoBanned, $bannedAt);
-    if (!$stmt->fetch()) {
+    $result = $stmt->fetch();
+    if ($result === false) {
         return false;
     }
+    list($reason, $whoBanned, $bannedAt) = $result;
     return [
         'reason'     => $reason,
         'who_banned' => $whoBanned,
@@ -112,12 +104,11 @@ function m_checkban(string $user)
 
 function m_ban(string $user, string $target, $reason): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare(
+    $conn = dbconn();
+    $stmt = $conn->prepare(
         'INSERT INTO banned_players (player, reason, who_banned) VALUES (?, ?, ?)'
     );
-    $stmt->bind_param('sss', $target, $reason, $user);
-    if (!$stmt->execute()) {
+    if (!$stmt->execute([$target, $reason, $user])) {
         error_log('m_ban execute error');
         return false;
     }
@@ -126,17 +117,15 @@ function m_ban(string $user, string $target, $reason): bool
 
 function m_unban(string $user, string $target, string $reason): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare('DELETE FROM banned_players WHERE player = ?');
-    $stmt->bind_param('s', $target);
-    if (!$stmt->execute()) {
+    $conn = dbconn();
+    $stmt = $conn->prepare('DELETE FROM banned_players WHERE player = ?');
+    if (!$stmt->execute([$target])) {
         return false;
     }
-    $stmt = $link->prepare(
+    $stmt = $conn->prepare(
         'INSERT INTO unbanned_players (player, reason, who_unbanned) VALUES (?, ?, ?)'
     );
-    $stmt->bind_param('sss', $target, $reason, $user);
-    if (!$stmt->execute()) {
+    if (!$stmt->execute([$target, $reason, $user])) {
         return false;
     }
     return true;
@@ -144,17 +133,17 @@ function m_unban(string $user, string $target, string $reason): bool
 
 function m_isMod(string $user): bool
 {
-    $link = newdb();
-    $stmt = $link->prepare('SELECT isMod FROM players WHERE player = ?');
-    $stmt->bind_param('s', $user);
-    if (!$stmt->execute()) {
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT isMod FROM players WHERE player = ?');
+    if (!$stmt->execute([$user])) {
         return false;
     }
-    $stmt->bind_result($isMod);
-    if (!$stmt->fetch()) {
+    $result = $stmt->fetch();
+    if ($result === false) {
+        // well, not really a problem
         return false;
     }
-    return (bool) $isMod;
+    return (bool) $result['isMod'];
 }
 
 function echo_log(string $line)
@@ -165,19 +154,27 @@ function echo_log(string $line)
     echo $line;
 }
 
-function newdb()
+function dbconn(): PDO
 {
-    $link = new mysqli(
-        $GLOBALS['db_host'],
+    static $conn = null;
+    if (!is_null($conn)) {
+        return $conn;
+    }
+
+    $conn = new PDO(
+        sprintf(
+            '%s:host=%s;dbname=%s;charset=%s',
+            $GLOBALS['db_type'],
+            $GLOBALS['db_host'],
+            $GLOBALS['db_name'],
+            $GLOBALS['db_charset']
+        ),
         $GLOBALS['db_username'],
         $GLOBALS['db_password'],
-        $GLOBALS['db_name']
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
-    if (mysqli_connect_errno()) {
-        error_log('Connection Failed: ' . mysqli_connect_errno());
-        die();
-    }
-    return $link;
+
+    return $conn;
 }
 
 function salt(string $salt, string $password): string
@@ -207,7 +204,7 @@ function to_uuid(string $str)
         return null;
     }
     foreach ([8, 13, 18, 23] as $pos) {
-        $ret = substr_replace($ret, '-',  $pos, 0);
+        $ret = substr_replace($ret, '-', $pos, 0);
     }
     return strtolower($ret);
 }
@@ -225,22 +222,19 @@ function set_skin(string $user, string $skinData, $skinModel): bool
         error_log(print_r(getimagesize($tmp), true));
         return false;
     }
-    $link = newdb();
-    $stmt = $link->prepare('SELECT skin FROM players WHERE player = ?');
-    $stmt->bind_param('s', $user);
-    $stmt->execute();
-    $stmt->bind_result($oldSkin);
-    $stmt->fetch();
-    $stmt->free_result();
+    $conn = dbconn();
+    $stmt = $conn->prepare('SELECT skin FROM players WHERE player = ?');
+    $stmt->execute([$user]);
+    $oldSkin = $stmt->fetchColumn();
     if ($oldSkin && is_readable('./Skins/' . $oldSkin)) {
         unlink('./Skins/' . $oldSkin);
     }
     $newSkin = generate_uuid(false) . generate_uuid(false);
-    $stmt = $link->prepare('UPDATE players SET skin = ?, skin_model = ? WHERE player = ?');
-    $stmt->bind_param('sss', $newSkin, $skinModel, $user);
-    $stmt->execute();
-    if (!rename($tmp, './Skins/' . $newSkin)) {
-        return false;
-    }
-    return true;
+
+    $stmt = $conn->prepare(
+        'UPDATE players SET skin = ?, skin_model = ? WHERE player = ?'
+    );
+    $stmt->execute([$newSkin, $skinModel, $user]);
+
+    return rename($tmp, './Skins/' . $newSkin);
 }

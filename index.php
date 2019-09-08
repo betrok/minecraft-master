@@ -39,27 +39,25 @@ switch ($_GET['act']) {
             die(echo_log(json_encode($answer)));
         }
         header('HTTP/1.1 200 OK');
-        $link = newdb();
-        $stmt = $link->prepare('SELECT clientToken, accessToken FROM players WHERE player = ?');
-        $stmt->bind_param('s', $jsonData['username']);
-        $stmt->execute();
-        $stmt->bind_result($clientToken, $accessToken);
-        $stmt->fetch();
-        $stmt->free_result();
-        $stmt = $link->prepare(
-            'INSERT INTO ids (player, ip, ticket, launcher_ver, os, os_arch, os_version) '
-            . 'VALUES(?, ?, ?, ?, ?, ?, ?)'
+        $conn = dbconn();
+
+        $stmt = $conn->prepare(
+            'SELECT clientToken, accessToken FROM players WHERE player = ?'
         );
-        $stmt->bind_param(
-            'sssssss',
-            $jsonData['username'],
-            $_SERVER['REMOTE_ADDR'],
-            $jsonData['ticket'],
-            $jsonData['launcherVersion'],
-            $jsonData['platform']['os'],
-            $jsonData['platform']['word'],
-            $jsonData['platform']['version']
+        $stmt->execute([$jsonData['username']]);
+        list($clientToken, $accessToken) = $stmt->fetch();
+
+        $stmt = $conn->prepare(
+            'INSERT INTO ids (player, ip, ticket, launcher_ver, os, os_arch, os_version) ' .
+            'VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
+        $stmt->bindParam(1, $jsonData['username'], PDO::PARAM_STR);
+        $stmt->bindParam(2, $_SERVER['REMOTE_ADDR'], PDO::PARAM_STR);
+        $stmt->bindParam(3, $jsonData['ticket'], PDO::PARAM_STR);
+        $stmt->bindParam(4, $jsonData['launcherVersion'], PDO::PARAM_STR);
+        $stmt->bindParam(5, $jsonData['platform']['os'], PDO::PARAM_STR);
+        $stmt->bindParam(6, $jsonData['platform']['word'], PDO::PARAM_STR);
+        $stmt->bindParam(7, $jsonData['platform']['version'], PDO::PARAM_STR);
         $stmt->execute();
         $answer = [
             'accessToken'       => $accessToken,
@@ -106,14 +104,13 @@ switch ($_GET['act']) {
             header('HTTP/1.0 404 Not Found');
             break;
         }
+
         $name = substr($_GET['act'], $begin + 1, ($end - $begin - 1));
-        $link = newdb();
-        $stmt = $link->prepare('SELECT skin FROM players WHERE player = ?');
-        $stmt->bind_param('s', $name);
-        $stmt->execute();
-        $stmt->bind_result($skin);
-        $stmt->fetch();
-        $stmt->free_result();
+        $conn = dbconn();
+        $stmt = $conn->prepare('SELECT skin FROM players WHERE player = ?');
+        $stmt->execute([$name]);
+        $skin = $stmt->fetchColumn();
+
         header('Location: ' . $http_root . '/Skins/' . ($skin ?? 'fairy'));
         break;
 
@@ -126,10 +123,11 @@ switch ($_GET['act']) {
         if (!m_join($jsonData['accessToken'], $jsonData['selectedProfile'])) {
             break;
         }
-        $link = newdb();
-        $stmt = $link->prepare('UPDATE players SET serverId=? WHERE accessToken = ?');
-        $stmt->bind_param('ss', $jsonData['serverId'], $jsonData['accessToken']);
-        $stmt->execute();
+        $conn = dbconn();
+        $stmt = $conn->prepare(
+            'UPDATE players SET serverId = ? WHERE accessToken = ?'
+        );
+        $stmt->execute([$jsonData['serverId'], $jsonData['accessToken']]);
         break;
 
     case 'hasJoined':
@@ -158,16 +156,19 @@ switch ($_GET['act']) {
             }
         }
         header('HTTP/1.1 200 OK');
-        $link = newdb();
-        $stmt = $link->prepare(
+
+        $conn = dbconn();
+        $stmt = $conn->prepare(
             'SELECT clientToken, cape, skin, skin_model FROM players WHERE player = ?'
         );
-        $stmt->bind_param('s', $_GET['username']);
-        $stmt->execute();
-        $stmt->bind_result($clientToken, $cape, $skin, $skin_model);
-        if (!$stmt->fetch()) {
+        $stmt->execute([$_GET['username']]);
+
+        $result = $stmt->fetch();
+        if ($result === false) {
             break;
         }
+        list($clientToken, $cape, $skin, $skin_model) = $result;
+
         if (!$skin) {
             $skin = 'fairy'; // default skin
         }
@@ -212,16 +213,17 @@ switch ($_GET['act']) {
             break;
         }
 
-        $link = newdb();
-        $stmt = $link->prepare(
+        $conn = dbconn();
+        $stmt = $conn->prepare(
             'SELECT player, cape, skin, skin_model FROM players WHERE clientToken = ?'
         );
-        $stmt->bind_param('s', $uuid);
-        $stmt->execute();
-        $stmt->bind_result($player, $cape, $skin, $skin_model);
-        if (!$stmt->fetch()) {
+        $stmt->execute([$uuid]);
+        $result = $stmt->fetch();
+        if ($result === false) {
             break;
         }
+        list($player, $cape, $skin, $skin_model) = $result;
+
         if (!$skin) {
             $skin = 'fairy'; // default skin
         }
@@ -261,12 +263,11 @@ switch ($_GET['act']) {
     case stripos($_GET['act'], 'users/profiles/minecraft/') === 0:
         $name = substr($_GET['act'], strlen('users/profiles/minecraft/'));
         list($name, ) = explode('?', $name, 2);
-        $link = newdb();
-        $stmt = $link->prepare('SELECT clientToken FROM players WHERE player = ?');
-        $stmt->bind_param('s', $name);
-        $stmt->execute();
-        $stmt->bind_result($id);
-        if (!$stmt->fetch() || !$id) {
+        $conn = dbconn();
+        $stmt = $conn->prepare('SELECT clientToken FROM players WHERE player = ?');
+        $stmt->execute([$name]);
+        $id = $stmt->fetchColumn();
+        if ($id === false) {
             header('HTTP/1.0 204 No Response');
             break;
         }
@@ -284,14 +285,14 @@ switch ($_GET['act']) {
             break;
         }
         $answer = [];
-        $link = newdb();
-        $stmt = $link->prepare('SELECT clientToken FROM players WHERE player = ?');
+        $conn = dbconn();
+        $stmt = $conn->prepare('SELECT clientToken FROM players WHERE player = ?');
+
         foreach ($jsonData as $name) {
-            $stmt->bind_param('s', $name);
-            $stmt->execute();
-            $stmt->bind_result($id);
-            if ($stmt->fetch() && $id) {
-                $answer[] = ['id'=> str_replace('-', '', $id), 'name' => $name];
+            $stmt->execute([$name]);
+            $id = $stmt->fetchColumn();
+            if ($id !== false) {
+                $answer[] = ['id' => str_replace('-', '', $id), 'name' => $name];
             }
         }
         echo_log(json_encode($answer, JSON_UNESCAPED_SLASHES));
