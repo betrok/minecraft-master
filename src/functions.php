@@ -1,4 +1,5 @@
 <?php
+require_once CONFIGDIR . DIRECTORY_SEPARATOR . 'config.php';
 
 function m_login(string $user, string $password): bool
 {

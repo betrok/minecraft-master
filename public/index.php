@@ -1,6 +1,11 @@
 <?php
-require 'config.php';
-require 'functions.php';
+define('BASEDIR', dirname(__FILE__, 2));
+define('CONFIGDIR', BASEDIR . DIRECTORY_SEPARATOR . 'config');
+define('SOURCEDIR', BASEDIR . DIRECTORY_SEPARATOR . 'src');
+define('RESOURCEDIR', BASEDIR . DIRECTORY_SEPARATOR . 'resources');
+
+require_once CONFIGDIR . DIRECTORY_SEPARATOR . 'config.php';
+require_once SOURCEDIR . DIRECTORY_SEPARATOR . 'functions.php';
 
 $json = file_get_contents('php://input');
 $jsonData = json_decode($json, true);
@@ -188,9 +193,7 @@ switch ($_GET['act']) {
             $value['textures']['CAPE'] = ['url' => $http_root . '/Capes/' . $cape];
         }
         $value = json_encode($value, JSON_UNESCAPED_SLASHES);
-        $fp = fopen('./key.pem', 'r');
-        $privKey = fread($fp, filesize('./key.pem'));
-        fclose($fp);
+        $privKey = file_get_contents(RESOURCEDIR . DIRECTORY_SEPARATOR .'key.pem');
         $pk = openssl_pkey_get_private($privKey);
         openssl_sign(base64_encode($value), $signature, $pk);
         $answer = [
@@ -243,9 +246,7 @@ switch ($_GET['act']) {
             $value['textures']['CAPE'] = ['url' => $http_root . '/Capes/' . $cape];
         }
         $value = json_encode($value, JSON_UNESCAPED_SLASHES);
-        $fp = fopen('./key.pem', 'r');
-        $privKey = fread($fp, filesize('./key.pem'));
-        fclose($fp);
+        $privKey = file_get_contents(RESOURCEDIR . DIRECTORY_SEPARATOR .'key.pem');
         $pk = openssl_pkey_get_private($privKey);
         openssl_sign(base64_encode($value), $signature, $pk);
         $answer = [
@@ -436,8 +437,9 @@ switch ($_GET['act']) {
                 'cause' => 'Wrong username/password',
             ]));
         }
-        $logfile = './feedback/' . $jsonData['username'] . '.'
-            . date('Y-m-d_H-i-s_') . explode(' ', microtime(), 2)[0] . '.log';
+        $logfile = RESOURCEDIR . DIRECTORY_SEPARATOR . 'feedback/'
+            . $jsonData['username'] . '.' . date('Y-m-d_H-i-s_')
+            . explode(' ', microtime(), 2)[0] . '.log';
         if (file_put_contents($logfile, gzdecode(base64_decode($jsonData['log'])))
             || file_put_contents($logfile, base64_decode($jsonData['desc']) . "\n" . base64_decode($jsonData['log']) . "\n")) {
             $answer = ['username' => $jsonData['username'], 'status' => 'accepted'];

@@ -1,6 +1,10 @@
+#!/usr/bin/env php
 <?php
-require 'config.php';
-require 'functions.php';
+define('BASEDIR', dirname(__FILE__, 2));
+define('CONFIGDIR', BASEDIR . DIRECTORY_SEPARATOR . 'config');
+define('SOURCEDIR', BASEDIR . DIRECTORY_SEPARATOR . 'src');
+
+require_once SOURCEDIR . DIRECTORY_SEPARATOR . 'functions.php';
 
 $conn = dbconn();
 
