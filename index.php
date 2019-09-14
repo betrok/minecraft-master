@@ -21,7 +21,7 @@ switch ($_GET['act']) {
             ])));
         }
         if (!m_login($jsonData['username'], $jsonData['password'])) {
-            header('HTTP/1.1 401 Unauthorized');
+            http_response_code(401);
             $error = [
                 'error'        => 'Unauthorized',
                 'errorMessage' => 'Unauthorized',
@@ -38,7 +38,7 @@ switch ($_GET['act']) {
             ];
             die(echo_log(json_encode($answer)));
         }
-        header('HTTP/1.1 200 OK');
+        http_response_code(200);
         $conn = dbconn();
 
         $stmt = $conn->prepare(
@@ -101,7 +101,7 @@ switch ($_GET['act']) {
         $begin = strpos($_GET['act'], '/');
         $end = strrpos($_GET['act'], '.');
         if ($begin === false || $end === false) {
-            header('HTTP/1.0 404 Not Found');
+            http_response_code(404);
             break;
         }
 
@@ -155,7 +155,7 @@ switch ($_GET['act']) {
                 die();
             }
         }
-        header('HTTP/1.1 200 OK');
+        http_response_code(200);
 
         $conn = dbconn();
         $stmt = $conn->prepare(
@@ -268,7 +268,7 @@ switch ($_GET['act']) {
         $stmt->execute([$name]);
         $id = $stmt->fetchColumn();
         if ($id === false) {
-            header('HTTP/1.0 204 No Response');
+            http_response_code(204);
             break;
         }
         $answer = ['id' => str_replace('-', '', $id), 'name' => $name];
@@ -314,7 +314,7 @@ switch ($_GET['act']) {
             die('Bad request');
         }
         if (!m_login($_GET['username'], $_GET['password'])) {
-            header('HTTP/1.1 401 Unauthorized');
+            http_response_code(401);
             $error = [
                 'error'        => 'Unauthorized',
                 'errorMessage' => 'Unauthorized',
@@ -323,7 +323,7 @@ switch ($_GET['act']) {
             die(echo_log(json_encode($error)));
         }
         if ((!m_isMod($_GET['username']) || m_checkban($_GET['username']))) {
-            header('HTTP/1.1 401 Unauthorized');
+            http_response_code(401);
             $error = [
                 'error'        => 'Unauthorized',
                 'errorMessage' => 'Unauthorized',
@@ -341,14 +341,14 @@ switch ($_GET['act']) {
             die(echo_log(json_encode($answer)));
         }
         if (!m_ban($_GET['username'], $_GET['target'], $_GET['reason'])) {
-            header('HTTP/1.1 500 Internal Server Error');
+            http_response_code(500);
             $answer = [
                 'error'        => 'Error',
                 'errorMessage' => 'Error',
                 'cause'        => 'Internal error',
             ];
         } else {
-            header('HTTP/1.1 200 OK');
+            http_response_code(200);
             $answer = [
                 'target' => $_GET['target'],
                 'reason' => $_GET['reason'],
@@ -365,7 +365,7 @@ switch ($_GET['act']) {
             die('Bad request');
         }
         if (!m_login($_GET['username'], $_GET['password'])) {
-            header('HTTP/1.1 401 Unauthorized');
+            http_response_code(401);
             $error = [
                 'error'        => 'Unauthorized',
                 'errorMessage' => 'Unauthorized',
@@ -374,7 +374,7 @@ switch ($_GET['act']) {
             die(echo_log(json_encode($error)));
         }
         if ((!m_isMod($_GET['username']) || m_checkban($_GET['username']))) {
-            header('HTTP/1.1 401 Unauthorized');
+            http_response_code(401);
             $error = [
                 'error'        => 'Unauthorized',
                 'errorMessage' => 'Unauthorized',
