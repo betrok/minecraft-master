@@ -11,7 +11,15 @@ function m_login(string $user, string $password): bool
         return false;
     }
     list($salt, $password2) = $result;
-    return (salt($salt, $password) === $password2);
+
+    if (salt($salt, $password) !== $password2) {
+        return false;
+    }
+
+    $accessToken = generate_uuid();
+    $stmt = $conn->prepare('UPDATE players SET accessToken = ? WHERE player = ?');
+    $stmt->execute([$accessToken, $user]);
+    return true;
 }
 
 function m_join(string $accessToken, string $selectedProfile): bool
