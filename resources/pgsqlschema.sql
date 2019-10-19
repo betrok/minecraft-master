@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS "ids" (
   "id" serial NOT NULL,
   "player" varchar(32) DEFAULT NULL,
   "ip" varchar(40) DEFAULT NULL,
+  "uuid" varchar(64) DEFAULT NULL,
   "ticket" varchar(64) DEFAULT NULL,
   "launcher_ver" varchar(32) DEFAULT NULL,
   "os" varchar(32) DEFAULT NULL,

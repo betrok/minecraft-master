@@ -8,15 +8,22 @@ require_once SOURCEDIR . DIRECTORY_SEPARATOR . 'functions.php';
 
 $conn = dbconn();
 
-$migrations = [];
-$migrations[] = [
-    'title'    => 'added_skin_models_support',
-    'function' => function (PDO $conn) {
-        $conn->query('ALTER TABLE players ADD skin_model VARCHAR(64) DEFAULT NULL AFTER skin');
-        $conn->query('ALTER TABLE players ADD cape VARCHAR(64) DEFAULT NULL AFTER isCapeOn');
-        $conn->query('UPDATE players SET cape = player WHERE isCapeOn = TRUE');
-        $conn->query('ALTER TABLE players DROP COLUMN isCapeOn');
-    },
+$migrations = [
+    [
+        'title'    => 'added_skin_models_support',
+        'function' => function (PDO $conn) {
+            $conn->query('ALTER TABLE players ADD COLUMN skin_model VARCHAR(64) DEFAULT NULL AFTER skin');
+            $conn->query('ALTER TABLE players ADD COLUMN cape VARCHAR(64) DEFAULT NULL AFTER isCapeOn');
+            $conn->query('UPDATE players SET cape = player WHERE isCapeOn = TRUE');
+            $conn->query('ALTER TABLE players DROP COLUMN isCapeOn');
+        },
+    ],
+    [
+        'title'    => 'added_uuid_storage',
+        'function' => function (PDO $conn) {
+            $conn->query('ALTER TABLE ids ADD COLUMN uuid VARCHAR(64) DEFAULT NULL AFTER ip');
+        },
+    ],
 ];
 
 function migration_history_exist(PDO $conn): bool

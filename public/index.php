@@ -46,6 +46,11 @@ switch ($_GET['act']) {
         http_response_code(200);
         $conn = dbconn();
 
+        $uuid = $jsonData['uuid'];
+        if (!empty($uuid)) {
+            $uuid = to_uuid($uuid) ?? $uuid;
+        }
+
         $stmt = $conn->prepare(
             'SELECT clientToken, accessToken FROM players WHERE player = ?'
         );
@@ -53,16 +58,17 @@ switch ($_GET['act']) {
         list($clientToken, $accessToken) = $stmt->fetch();
 
         $stmt = $conn->prepare(
-            'INSERT INTO ids (player, ip, ticket, launcher_ver, os, os_arch, os_version) ' .
-            'VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO ids (player, ip, uuid, ticket, launcher_ver, os, os_arch, os_version) '
+            . 'VALUES (:player, :ip, :uuid, :ticket, :launcher_ver, :os, :os_arch, :os_version)'
         );
-        $stmt->bindParam(1, $jsonData['username'], PDO::PARAM_STR);
-        $stmt->bindParam(2, $_SERVER['REMOTE_ADDR'], PDO::PARAM_STR);
-        $stmt->bindParam(3, $jsonData['ticket'], PDO::PARAM_STR);
-        $stmt->bindParam(4, $jsonData['launcherVersion'], PDO::PARAM_STR);
-        $stmt->bindParam(5, $jsonData['platform']['os'], PDO::PARAM_STR);
-        $stmt->bindParam(6, $jsonData['platform']['word'], PDO::PARAM_STR);
-        $stmt->bindParam(7, $jsonData['platform']['version'], PDO::PARAM_STR);
+        $stmt->bindParam(':player', $jsonData['username']);
+        $stmt->bindParam(':ip', $_SERVER['REMOTE_ADDR']);
+        $stmt->bindParam(':uuid', $uuid);
+        $stmt->bindParam(':ticket', $jsonData['ticket']);
+        $stmt->bindParam(':launcher_ver', $jsonData['launcherVersion']);
+        $stmt->bindParam(':os', $jsonData['platform']['os']);
+        $stmt->bindParam(':os_arch', $jsonData['platform']['word']);
+        $stmt->bindParam(':os_version', $jsonData['platform']['version']);
         $stmt->execute();
         $answer = [
             'accessToken'       => $accessToken,

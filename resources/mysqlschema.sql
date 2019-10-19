@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `ids` (
   `id` int NOT NULL AUTO_INCREMENT,
   `player` varchar(32) DEFAULT NULL,
   `ip` varchar(40) DEFAULT NULL,
+  `uuid` varchar(64) DEFAULT NULL,
   `ticket` varchar(64) DEFAULT NULL,
   `launcher_ver` varchar(32) DEFAULT NULL,
   `os` varchar(32) DEFAULT NULL,
