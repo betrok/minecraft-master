@@ -25,9 +25,9 @@ function m_login(string $user, string $password): bool
 function m_join(string $accessToken, string $selectedProfile): bool
 {
     $conn = dbconn();
-    $stmt = $conn->prepare('SELECT TRUE FROM players WHERE accessToken = ?');
+    $stmt = $conn->prepare('SELECT COUNT(*) FROM players WHERE accessToken = ?');
     $stmt->execute([$accessToken]);
-    if ($stmt->rowCount() === 0) {
+    if ((int) $stmt->fetchColumn() == 0) {
         return false;
     }
     if ($GLOBALS['DEBUG']) {

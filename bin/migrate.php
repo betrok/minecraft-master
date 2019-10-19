@@ -45,14 +45,14 @@ if (!migration_history_exist($conn)) {
     ));
 }
 
-$stmt = $conn->prepare('SELECT title FROM migration_history WHERE title = ?');
-for ($i = 0, $count = count($migrations); $i < $count; ++$i) {
-    $stmt->execute([$migrations[$i]['title']]);
-    if ($stmt->rowCount() === 0) {
-        $migrations[$i]['function']($conn);
-        $insertStmt = $conn->prepare(
+$stmt = $conn->prepare('SELECT COUNT(*) FROM migration_history WHERE title = ?');
+foreach ($migrations as $k => &$v) {
+    $stmt->execute([$migrations[$k]['title']]);
+    if ((int) $stmt->fetchColumn() == 0) {
+        $migrations[$k]['function']($conn);
+        $insert_stmt = $conn->prepare(
             'INSERT INTO migration_history (title) VALUES (?)'
         );
-        $insertStmt->execute([$migrations[$i]['title']]);
+        $insert_stmt->execute([$migrations[$k]['title']]);
     }
 }
