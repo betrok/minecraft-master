@@ -22,16 +22,18 @@ function m_login(string $user, string $password): bool
     return true;
 }
 
-function m_join(string $accessToken, string $selectedProfile): bool
+function m_join(string $client_token, string $access_token): bool
 {
     $conn = dbconn();
-    $stmt = $conn->prepare('SELECT COUNT(*) FROM players WHERE accessToken = ?');
-    $stmt->execute([$accessToken]);
+    $stmt = $conn->prepare(
+        'SELECT COUNT(*) FROM players WHERE clientToken = ? AND accessToken = ?'
+    );
+    $stmt->execute([$client_token, $access_token]);
     if ((int) $stmt->fetchColumn() == 0) {
         return false;
     }
     if ($GLOBALS['DEBUG']) {
-        error_log('Join OK: ' . $accessToken);
+        error_log("Join OK: {$access_token}");
     }
     return true;
 }

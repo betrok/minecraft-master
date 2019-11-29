@@ -126,19 +126,25 @@ switch ($_GET['act']) {
         break;
 
     case 'join':
+        $client_token = to_uuid($jsonData['selectedProfile']);
         if (empty($jsonData['accessToken'])
-            || empty($jsonData['selectedProfile'])
+            || is_null($client_token)
             || empty($jsonData['serverId'])) {
             die('Bad request');
         }
-        if (!m_join($jsonData['accessToken'], $jsonData['selectedProfile'])) {
+        if (!m_join($client_token, $jsonData['accessToken'])) {
             break;
         }
         $conn = dbconn();
         $stmt = $conn->prepare(
-            'UPDATE players SET serverId = ? WHERE accessToken = ?'
+            'UPDATE players SET serverId = ? '
+            . 'WHERE clientToken = ? AND accessToken = ?'
         );
-        $stmt->execute([$jsonData['serverId'], $jsonData['accessToken']]);
+        $stmt->execute([
+            $jsonData['serverId'],
+            $client_token,
+            $jsonData['accessToken'],
+        ]);
         break;
 
     case 'hasJoined':
@@ -154,21 +160,28 @@ switch ($_GET['act']) {
             ];
             die(echo_log(json_encode($answer)));
         }
+
         if (m_isMojang($_GET['username'])) {
             $answer = mojang_hasJoined($_GET['username'], $_GET['serverId']);
-            if (strlen($answer) === 0) {
-                break;
+            if (strlen($answer) != 0) {
+                die(echo_log($answer));
             }
-            echo_log($answer);
             break;
-        } else {
-            if (!m_hasJoined($_GET['username'], $_GET['serverId'])) {
-                die();
-            }
         }
+
+        if (!m_hasJoined($_GET['username'], $_GET['serverId'])) {
+            break;
+        }
+
         http_response_code(200);
 
         $conn = dbconn();
+        // Expire serverId as it served its purpose.
+        $stmt = $conn->prepare(
+            'UPDATE players SET serverId = NULL WHERE player = ?'
+        );
+        $stmt->execute([$_GET['username']]);
+
         $stmt = $conn->prepare(
             'SELECT clientToken, cape, skin, skin_model FROM players WHERE player = ?'
         );
