@@ -51,10 +51,10 @@ function m_isMojang(string $user): bool
 function mojang_hasJoined(string $user, string $serverId)
 {
     $conn = dbconn();
-    $stmt = $conn->prepare('SELECT accessToken FROM players WHERE player = ?');
+    $stmt = $conn->prepare('SELECT clientToken FROM players WHERE player = ?');
     $stmt->execute([$user]);
-    $accessToken = $stmt->fetchColumn();
-    if ($accessToken === false) {
+    $client_token = $stmt->fetchColumn();
+    if ($client_token === false) {
         return false;
     }
 
@@ -65,7 +65,7 @@ function mojang_hasJoined(string $user, string $serverId)
         return false;
     }
     $jsonData = json_decode($json, true);
-    $jsonData['id'] = $accessToken;
+    $jsonData['id'] = $client_token;
     return json_encode($jsonData);
 }
 
